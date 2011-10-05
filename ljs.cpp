@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 
   int flag;
   while (1) {
-
+    timer.reset();
     flag = input(in,atom,force,neighbor,integrate,thermo);
     if (flag && prompt()) continue;
 

@@ -41,6 +41,7 @@ class Timer {
  public:
   Timer();
   ~Timer();
+  void reset();
   void stamp();
   void stamp(int);
   void barrier_start(int);
