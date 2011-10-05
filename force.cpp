@@ -72,7 +72,6 @@ void Force::compute(Atom &atom, Neighbor &neighbor, int me)
 
   double **f = atom.f + nall*tid;
 #else
-  const int tid = 0;
   const int ifrom = 0;
   const int ito = nlocal;
   double **f = atom.f;
