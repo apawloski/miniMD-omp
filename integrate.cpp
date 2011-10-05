@@ -42,20 +42,20 @@ void Integrate::setup()
 void Integrate::run(Atom &atom, Force &force, Neighbor &neighbor,
 		    Comm &comm, Thermo &thermo, Timer &timer)
 {
-  int i,n,nlocal;
-  double **x,**v,**f,**vold;
+  int i,n;
+  double *x,*v,*f,*vold;
 
   for (n = 0; n < ntimes; n++) {
 
-    x = atom.x;
-    v = atom.v;
-    nlocal = atom.nlocal;
+    x = &(atom.x[0][0]);
+    v = &(atom.v[0][0]);
+    const int n3local = 3*atom.nlocal;
 
-    for (i = 0; i < nlocal; i++) {
-      x[i][0] += dt*v[i][0];
-      x[i][1] += dt*v[i][1];
-      x[i][2] += dt*v[i][2];
-    }
+#if defined(_OPENMP)
+#pragma omp parallel for private(i) schedule(static)
+#endif
+    for (i = 0; i < n3local; i++)
+      x[i] += dt*v[i];
 
     timer.stamp();
 
@@ -76,18 +76,17 @@ void Integrate::run(Atom &atom, Force &force, Neighbor &neighbor,
     comm.reverse_communicate(atom);
     timer.stamp(TIME_COMM);
 
-    vold = atom.vold;
-    v = atom.v;
-    f = atom.f;
-    nlocal = atom.nlocal;
+    vold = &(atom.vold[0][0]);
+    v = &(atom.v[0][0]);
+    f = &(atom.f[0][0]);
+    const int n3local2 = atom.nlocal;
 
-    for (i = 0; i < nlocal; i++) {
-      vold[i][0] = v[i][0];
-      vold[i][1] = v[i][1];
-      vold[i][2] = v[i][2];
-      v[i][0] += dtforce*f[i][0];
-      v[i][1] += dtforce*f[i][1];
-      v[i][2] += dtforce*f[i][2];
+#if defined(_OPENMP)
+#pragma omp parallel for private(i) schedule(static)
+#endif
+    for (i = 0; i < n3local2; i++) {
+      vold[i] = v[i];
+      v[i] += dtforce*f[i];
     }
 
     if (thermo.nstat) thermo.compute(n+1,atom,neighbor,force);
