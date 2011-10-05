@@ -51,12 +51,16 @@ Comm::Comm()
   buf_recv = (double *) malloc(maxrecv*sizeof(double));
   nthreads = 1;
 #if defined(_OPENMP)
-  nthreads = omp_get_num_threads();
-  if (nthreads > 1) {
+#pragma omp parallel default(none)
+  {
+#pragma omp master
+    { nthreads = omp_get_num_threads(); }
+  }
+#endif
+  if (nthreads < 1) {
     fprintf(stderr, "abort due to illegal number of threads: %d\n", nthreads);
     exit(1);
   }
-#endif
 }
 
 Comm::~Comm() {}
