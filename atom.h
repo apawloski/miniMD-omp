@@ -43,6 +43,7 @@ class Atom {
   int natoms;
   int nlocal,nghost;
   int nmax;
+  int nthreads;
 
   double **x;
   double **v;

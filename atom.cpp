@@ -34,6 +34,10 @@
 #include "mpi.h"
 #include "atom.h"
 
+#if defined(_OPENMP)
+#include <omp.h>
+#endif
+
 #define DELTA 20000
 
 Atom::Atom()
@@ -42,6 +46,14 @@ Atom::Atom()
   nlocal = 0;
   nghost = 0;
   nmax = 0;
+  nthreads = 1;
+#if defined(_OPENMP)
+#pragma omp parallel default(none)
+  {
+#pragma omp master 
+    { nthreads = omp_get_num_threads(); }
+  }
+#endif
 
   x = v = f = vold = NULL;
 
@@ -66,7 +78,7 @@ void Atom::growarray()
   nmax += DELTA;
   x = (double **) realloc_2d_double_array(x,nmax,3,3*nold);
   v = (double **) realloc_2d_double_array(v,nmax,3,3*nold);
-  f = (double **) realloc_2d_double_array(f,nmax,3,3*nold);
+  f = (double **) realloc_2d_double_array(f,nmax*nthreads,3,3*nold);
   vold = (double **) realloc_2d_double_array(vold,nmax,3,3*nold);
   if (x == NULL || v == NULL || f == NULL || vold == NULL) {
     printf("ERROR: No memory for atoms\n");
