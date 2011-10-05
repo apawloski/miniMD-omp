@@ -14,6 +14,8 @@ ROOT =	miniMD
 EXE =	$(ROOT)_$@
 OBJ =	$(SRC:.cpp=.o)
 
+default: openmpi-omp
+
 # Help
 
 help:

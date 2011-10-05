@@ -5,12 +5,13 @@ SHELL = /bin/sh
 
 # System-specific settings
 
-CC =		mpicxx -fopenmp
-CCFLAGS =	-O2 -g -fomit-frame-pointer -fno-rtti -fno-exceptions	\
+CC =		mpic++
+CCFLAGS =	-O2 -g -fopenmp -fomit-frame-pointer -fno-rtti -fno-exceptions	\
 		-march=native -ffast-math -mpc64 -finline-functions	\
-		-funroll-loops -fstrict-aliasing -Wall -W -Wno-uninitialized
-LINK =		mpicxx -fopenmp
-LINKFLAGS =	-O2 -g
+		-funroll-loops -fstrict-aliasing -Wall -W -Wno-uninitialized	\
+		-DOMPI_SKIP_MPICXX=1
+LINK =		mpic++
+LINKFLAGS =	-O2 -g -fopenmp
 USRLIB =
 SYSLIB =
 SIZE =		size
@@ -20,7 +21,7 @@ SIZE =		size
 $(EXE):	$(OBJ)
 	$(LINK) $(LINKFLAGS) $(OBJ) $(USRLIB) $(SYSLIB) -o $(EXE)
 	$(SIZE) $(EXE)
-	mv $(EXE) ../md
+#	mv $(EXE) ../md
 
 # Compilation rules
 

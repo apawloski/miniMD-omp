@@ -8,7 +8,8 @@ SHELL = /bin/sh
 CC =		mpicxx 
 CCFLAGS =	-O2 -g -fomit-frame-pointer -fno-rtti -fno-exceptions	\
 		-march=native -ffast-math -mpc64 -finline-functions	\
-		-funroll-loops -fstrict-aliasing -Wall -W -Wno-uninitialized
+		-funroll-loops -fstrict-aliasing -Wall -W -Wno-uninitialized \
+		-DOMPI_SKIP_MPICXX=1
 LINK =		mpicxx
 LINKFLAGS =	-O2 -g
 USRLIB =
@@ -20,7 +21,7 @@ SIZE =		size
 $(EXE):	$(OBJ)
 	$(LINK) $(LINKFLAGS) $(OBJ) $(USRLIB) $(SYSLIB) -o $(EXE)
 	$(SIZE) $(EXE)
-	mv $(EXE) ../md
+#	mv $(EXE) ../md
 
 # Compilation rules
 
