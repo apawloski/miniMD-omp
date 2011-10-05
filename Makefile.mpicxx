@@ -1,0 +1,30 @@
+# Makefile for mpicxx compiler
+
+SHELL = /bin/sh
+#.IGNORE:
+
+# System-specific settings
+
+CC =		mpicxx 
+CCFLAGS =	-O -DMPICH_IGNORE_CXX_SEEK
+LINK =		mpicxx
+LINKFLAGS =	-O -L/cygdrive/c/cygwin/mpich2-1.0.4p1/lib
+USRLIB =	-lmpich
+SYSLIB =	-lpthread
+SIZE =		size
+
+# Link rule
+
+$(EXE):	$(OBJ)
+	$(LINK) $(LINKFLAGS) $(OBJ) $(USRLIB) $(SYSLIB) -o $(EXE)
+	$(SIZE) $(EXE).exe
+	mv $(EXE).exe ../md
+
+# Compilation rules
+
+.cpp.o:
+	$(CC) $(CCFLAGS) -c $<
+
+# Individual dependencies
+
+$(OBJ): $(INC)
