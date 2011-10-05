@@ -1,0 +1,32 @@
+# Makefile for mpicxx compiler
+
+SHELL = /bin/sh
+#.IGNORE:
+
+# System-specific settings
+
+CC =		mpicxx 
+CCFLAGS =	-O2 -g -fomit-frame-pointer -fno-rtti -fno-exceptions	\
+		-march=native -ffast-math -mpc64 -finline-functions	\
+		-funroll-loops -fstrict-aliasing -Wall -W -Wno-uninitialized
+LINK =		mpicxx
+LINKFLAGS =	-O2 -g
+USRLIB =
+SYSLIB =
+SIZE =		size
+
+# Link rule
+
+$(EXE):	$(OBJ)
+	$(LINK) $(LINKFLAGS) $(OBJ) $(USRLIB) $(SYSLIB) -o $(EXE)
+	$(SIZE) $(EXE)
+	mv $(EXE) ../md
+
+# Compilation rules
+
+.cpp.o:
+	$(CC) $(CCFLAGS) -c $<
+
+# Individual dependencies
+
+$(OBJ): $(INC)

@@ -19,19 +19,28 @@ OBJ =	$(SRC:.cpp=.o)
 help:
 	@echo 'Type "make target" where target is one of:'
 	@echo '      mpicxx     (for cygwin box with mpicxx compiler)'
+	@echo '      openmpi    (for linux box with OpenMPI and gcc 4.x compiler)'
+	@echo '      openmpi-omp    (for linux box with OpenMPI+OpenMP and gcc 4.x compiler)'
 
 # Targets
 
-mpicxx:
+mpicxx openmpi openmpi-omp:
 	@if [ ! -d Obj_$@ ]; then mkdir Obj_$@; fi
 	@cp -p $(SRC) $(INC) Obj_$@
 	@cp Makefile.$@ Obj_$@/Makefile
 	@cd Obj_$@; \
 	$(MAKE)  "OBJ = $(OBJ)" "INC = $(INC)" "EXE = ../$(EXE)" ../$(EXE)
-#	@if [ -d Obj_$@ ]; then cd Obj_$@; rm $(SRC) $(INC) Makefile*; fi
 
 # Clean
 
+clean: clean_mpicxx clean_openmpi clean_openmpi-omp
+
 clean_mpicxx:
-	rm -r Obj_mpicxx
+	rm -rf Obj_mpicxx
+
+clean_openmpi:
+	rm -rf Obj_openmpi
+
+clean_openmpi-omp:
+	rm -rf Obj_openmpi-omp
 
