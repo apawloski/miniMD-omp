@@ -35,6 +35,9 @@ mpicxx openmpi openmpi-omp:
 
 # Clean
 
+veryclean:
+	rm -f miniMD_*
+
 clean: clean_mpicxx clean_openmpi clean_openmpi-omp
 
 clean_mpicxx:
