@@ -52,7 +52,6 @@ class Neighbor {
   
  private:
   double xprd,yprd,zprd;           // box size
-  int npage;                       // current page in page list
   int maxpage;                     // # of pages currently allocated
   int **pages;                     // neighbor list pages
 

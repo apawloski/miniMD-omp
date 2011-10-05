@@ -33,6 +33,10 @@
 
 #include "neighbor.h"
 
+#if defined(_OPENMP)
+#include <omp.h>
+#endif
+
 #define PAGESIZE 10000
 #define ONEATOM 1000
 #define PAGEDELTA 1
@@ -71,14 +75,11 @@ Neighbor::~Neighbor()
 
 void Neighbor::build(Atom &atom)
 {
-  int i,j,k,m,n,ibin,nlocal,nall,npnt;
-  double xtmp,ytmp,ztmp,delx,dely,delz,rsq;
-  int *neighptr;
-  double **x;
-
   ncalls++;
-  nlocal = atom.nlocal;
-  nall = atom.nlocal + atom.nghost;
+
+  const int nthreads = atom.nthreads;
+  const int nlocal = atom.nlocal;
+  const int nall = atom.nlocal + atom.nghost;
 
   /* extend atom arrays if necessary */
 
@@ -96,24 +97,55 @@ void Neighbor::build(Atom &atom)
 
   binatoms(atom);
 
+  if (nthreads > maxpage) {
+    const int oldpage = maxpage;
+    maxpage = nthreads;
+    pages = (int **) realloc(pages,maxpage*sizeof(int *));
+    for (int m = oldpage; m < maxpage; m++)
+      pages[m] = (int *) malloc(PAGESIZE*sizeof(int));
+  }
+
+#if defined(_OPENMP)
+#pragma omp parallel default(none) shared(atom)
+#endif
+{
+#if defined(_OPENMP)
+  const int tid = omp_get_thread_num();
+  const int idelta = 1 + nlocal/nthreads;
+  const int ifrom = tid*idelta;
+  const int imax  = ifrom + idelta;
+  const int ito = (imax > nlocal) ? nlocal : imax;
+#else
+  const int tid = 0;
+  const int ifrom = 0;
+  const int ito = nlocal;
+#endif
+
+  int i,j,k,m,n,ibin;
+  double xtmp,ytmp,ztmp,delx,dely,delz,rsq;
+  int *neighptr;
+  double **x = atom.x;
+
+  int npnt = 0;
+  int npage = tid;
+
   /* loop over each atom, storing neighbors */
 
-  x = atom.x;
-
-  npnt = 0;
-  npage = 0;
-
-  for (i = 0; i < nlocal; i++) {
+  for (i = ifrom; i < ito; i++) {
 
     /* if necessary, goto next page and add pages */
 
+#if defined(_OPENMP)
+#pragma omp critical
+#endif
     if (PAGESIZE - npnt < ONEATOM) {
       npnt = 0;
-      npage++;
-      if (npage == maxpage) {
-	maxpage += PAGEDELTA;
+      npage += nthreads;
+      if (npage >= maxpage) {
+	const int oldpage = maxpage;
+	maxpage += nthreads;
 	pages = (int **) realloc(pages,maxpage*sizeof(int *));
-	for (m = npage; m < maxpage; m++)
+	for (m = oldpage; m < maxpage; m++)
 	  pages[m] = (int *) malloc(PAGESIZE*sizeof(int));
       }
     }
@@ -166,6 +198,7 @@ void Neighbor::build(Atom &atom)
     numneigh[i] = n;
     npnt += n;
   }
+}
 }
       
 /* bin owned and ghost atoms */
