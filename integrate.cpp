@@ -50,12 +50,13 @@ void Integrate::run(Atom &atom, Force &force, Neighbor &neighbor,
     x = &(atom.x[0][0]);
     v = &(atom.v[0][0]);
     const int n3local = 3*atom.nlocal;
+    const double dt1 = dt;
 
 #if defined(_OPENMP)
-#pragma omp parallel for private(i) schedule(static)
+#pragma omp parallel for private(i) schedule(static) default(none) shared(x,v)
 #endif
     for (i = 0; i < n3local; i++)
-      x[i] += dt*v[i];
+      x[i] += dt1*v[i];
 
     timer.stamp();
 
@@ -79,10 +80,11 @@ void Integrate::run(Atom &atom, Force &force, Neighbor &neighbor,
     vold = &(atom.vold[0][0]);
     v = &(atom.v[0][0]);
     f = &(atom.f[0][0]);
-    const int n3local2 = atom.nlocal;
+    const int n3local2 = 3*atom.nlocal;
+    const double dtforce1 = dtforce;
 
 #if defined(_OPENMP)
-#pragma omp parallel for private(i) schedule(static)
+#pragma omp parallel for private(i) schedule(static) default(none) shared(vold,v,f)
 #endif
     for (i = 0; i < n3local2; i++) {
       vold[i] = v[i];
