@@ -31,6 +31,11 @@
 #include "stdio.h"
 #include "math.h"
 #include "force.h"
+#include "string.h"
+
+#if defined(_OPENMP)
+#include <omp.h>
+#endif
 
 Force::Force() {}
 Force::~Force() {}
@@ -42,34 +47,52 @@ void Force::setup()
 
 void Force::compute(Atom &atom, Neighbor &neighbor, int me)
 {
-  int i,j,k,nlocal,nall,numneigh;
-  double xtmp,ytmp,ztmp,delx,dely,delz,rsq;
-  double sr2,sr6,force;
-  int *neighs;
-  double **x,**f;
 
-  nlocal = atom.nlocal;
-  nall = atom.nlocal + atom.nghost;
-  x = atom.x;
-  f = atom.f;
+#if defined(_OPENMP)
+#pragma omp parallel default(none) shared(atom,neighbor,me)
+#endif
+{
+  int i,j,k,numneigh;
+  double xtmp,ytmp,ztmp,delx,dely,delz,rsq;
+  double fxtmp,fytmp,fztmp,sr2,sr6,force;
+  int *neighs;
+
+  const int nlocal = atom.nlocal;
+  const int nall = atom.nlocal + atom.nghost;
+
+#if defined(_OPENMP)
+  const int tid = omp_get_thread_num();
+  const int nthreads = atom.nthreads;
+
+  // each thread works on a fixed chunk of atoms.
+  const int idelta = 1 + nlocal/nthreads;
+  const int ifrom = tid*idelta;
+  const int imax  = ifrom + idelta;
+  const int ito   = (imax > nlocal) ? nlocal : imax;
+
+  double **f = atom.f + nall*tid;
+#else
+  const int tid = 0;
+  const int ifrom = 0;
+  const int ito = nlocal;
+  double **f = atom.f;
+#endif
+
+  double **x = atom.x;
 
   // clear force on own and ghost atoms
-
-  for (i = 0; i < nall; i++) {
-    f[i][0] = 0.0;
-    f[i][1] = 0.0;
-    f[i][2] = 0.0;
-  }
+  memset(&(f[0][0]),0,3*nall*sizeof(double));
 
   // loop over all neighbors of my atoms
   // store force on both atoms i and j
   
-  for (i = 0; i < nlocal; i++) {
+  for (i = ifrom; i < ito; i++) {
     neighs = neighbor.firstneigh[i];
     numneigh = neighbor.numneigh[i];
     xtmp = x[i][0];
     ytmp = x[i][1];
     ztmp = x[i][2];
+    fxtmp = fytmp = fztmp = 0.0;
     for (k = 0; k < numneigh; k++) {
       j = neighs[k];
       delx = xtmp - x[j][0];
@@ -80,13 +103,36 @@ void Force::compute(Atom &atom, Neighbor &neighbor, int me)
 	sr2 = 1.0/rsq;
 	sr6 = sr2*sr2*sr2;
 	force = sr6*(sr6-0.5)*sr2;
-	f[i][0] += delx*force;
-	f[i][1] += dely*force;
-	f[i][2] += delz*force;
+	fxtmp += delx*force;
+	fytmp += dely*force;
+	fztmp += delz*force;
 	f[j][0] -= delx*force;
 	f[j][1] -= dely*force;
 	f[j][2] -= delz*force;
       }
     }
+    f[i][0] += fxtmp;
+    f[i][1] += fytmp;
+    f[i][2] += fztmp;
   }
+#if defined(_OPENMP)
+  // NO-OP for one thread
+#pragma omp barrier
+  if (nthreads > 1) {
+    // reduction of per-thread forces into first part of array
+    const int nvals = 3*nall;
+    const int idelta = nvals/nthreads + 1;
+    const int ifrom = tid*idelta;
+    const int imax  = ifrom + idelta;
+    const int ito   = (imax > nvals) ? nvals : imax;
+    double *fall = &(atom.f[0][0]);
+
+    for (int m = ifrom; m < ito; ++m)
+      for (int n = 1; n < nthreads; ++n)
+        fall[m] += fall[n*nvals + m];
+  }
+#else
+  // NO-OP in non-threaded compile
+#endif
+}
 }
