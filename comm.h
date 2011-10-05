@@ -49,6 +49,7 @@ class Comm {
  public:
   int me;                           // my proc ID
   int nswap;                        // # of swaps to perform
+  int nthreads;                     // number of threads
   int *pbc_any;                     // whether any PBC on this swap
   int *pbc_flagx;                   // PBC correction in x for this swap
   int *pbc_flagy;                   // same in y

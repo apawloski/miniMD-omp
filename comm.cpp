@@ -33,6 +33,10 @@
 #include "mpi.h"
 #include "comm.h"
 
+#if defined(_OPENMP)
+#include <omp.h>
+#endif
+
 #define BUFFACTOR 1.5
 #define BUFMIN 1000
 #define BUFEXTRA 100
@@ -45,6 +49,14 @@ Comm::Comm()
   buf_send = (double *) malloc((maxsend+BUFMIN)*sizeof(double));
   maxrecv = BUFMIN;
   buf_recv = (double *) malloc(maxrecv*sizeof(double));
+  nthreads = 1;
+#if defined(_OPENMP)
+  nthreads = omp_get_num_threads();
+  if (nthreads > 1) {
+    fprintf(stderr, "abort due to illegal number of threads: %d\n", nthreads);
+    exit(1);
+  }
+#endif
 }
 
 Comm::~Comm() {}

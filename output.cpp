@@ -117,15 +117,17 @@ void output(In &in, Atom &atom, Force &force, Neighbor &neighbor, Comm &comm,
     pow(force.cutforce,3.0) * in.rho * 0.5 *
     23 * natoms * integrate.ntimes / time_total / 1000000.0;
 
+  int allprocs = nprocs * comm.nthreads;
+
   if (me == 0) {
-    fprintf(stdout,"Total time: %g on %d procs for %d atoms\n",
-	    time_total,nprocs,natoms);
+    fprintf(stdout,"Total time: %g on %d procs (%d MPI / %d OpenMP) for %d atoms\n",
+	    time_total,allprocs,nprocs,comm.nthreads,natoms);
     fprintf(stdout,"Aggregate Mflops: %g\n",mflops);
-    fprintf(stdout,"Mflops/proc: %g\n",mflops/nprocs);
-    fprintf(fp,"Total time: %g on %d procs for %d atoms\n",
-	    time_total,nprocs,natoms);
+    fprintf(stdout,"Mflops/proc: %g\n",mflops/allprocs);
+    fprintf(fp,"Total time: %g on %d procs (%d MPI / %d OpenMP) for %d atoms\n",
+	    time_total,allprocs,nprocs,comm.nthreads,natoms);
     fprintf(fp,"Aggregate Mflops: %g\n",mflops);
-    fprintf(fp,"Mflops/proc: %g\n",mflops/nprocs);
+    fprintf(fp,"Mflops/proc: %g\n",mflops/allprocs);
   }
 
   if (time_total == 0.0) time_total = 1.0;
