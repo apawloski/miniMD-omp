@@ -82,14 +82,17 @@ void Thermo::compute(int iflag, Atom &atom, Neighbor &neighbor, Force &force)
 
 double Thermo::energy(Atom &atom, Neighbor &neighbor, Force &force)
 {
-  int i,j,k,numneigh;
-  double delx,dely,delz,rsq,sr2,sr6,phi;
-  int *neighs;
-
+  int i;
   double eng = 0.0;
+#if defined(_OPENMP)
+#pragma omp parallel for private(i) default(none) reduction(+:eng) shared(atom,neighbor,force)
+#endif
   for (i = 0; i < atom.nlocal; i++) {
-    neighs = neighbor.firstneigh[i];
-    numneigh = neighbor.numneigh[i];
+    int j,k;
+    double delx,dely,delz,rsq,sr2,sr6,phi;
+
+    const int * const neighs = neighbor.firstneigh[i];
+    const int numneigh = neighbor.numneigh[i];
     for (k = 0; k < numneigh; k++) {
       j = neighs[k];
       delx = atom.x[i][0] - atom.x[j][0];
@@ -114,15 +117,18 @@ double Thermo::energy(Atom &atom, Neighbor &neighbor, Force &force)
 
 double Thermo::temperature(Atom &atom)
 {
-  int i;
-  double vx,vy,vz;
+  const double * const v = &(atom.v[0][0]);
+  const double * const vold = &(atom.vold[0][0]);
+  const int n3local = 3*atom.nlocal;
 
+  int i;
   double t = 0.0;
-  for (i = 0; i < atom.nlocal; i++) {
-    vx = 0.5 * (atom.v[i][0] + atom.vold[i][0]);
-    vy = 0.5 * (atom.v[i][1] + atom.vold[i][1]);
-    vz = 0.5 * (atom.v[i][2] + atom.vold[i][2]);
-    t += vx*vx + vy*vy + vz*vz;
+#if defined(_OPENMP)
+#pragma omp parallel for private(i) default(none) reduction(+:t)
+#endif
+  for (i = 0; i < n3local; i++) {
+    const double vx = 0.5 * (v[i] + vold[i]);
+    t += vx*vx;
   }
 
   double t1;
@@ -137,12 +143,17 @@ double Thermo::temperature(Atom &atom)
 
 double Thermo::pressure(double t, Atom &atom)
 {
-  int i;
+  const double * const x = &(atom.x[0][0]);
+  const double * const f = &(atom.f[0][0]);
+  const int n3all = 3*(atom.nlocal+atom.nghost);
 
+  int i;
   double virial = 0.0;
-  for (i = 0; i < atom.nlocal+atom.nghost; i++)
-    virial += atom.f[i][0]*atom.x[i][0] + atom.f[i][1]*atom.x[i][1] + 
-      atom.f[i][2]*atom.x[i][2];
+#if defined(_OPENMP)
+#pragma omp parallel for private(i) default(none) reduction(+:virial)
+#endif
+  for (i = 0; i < n3all; i++)
+    virial += f[i]*x[i];
 
   double virtmp = 48.0*virial;
   MPI_Allreduce(&virtmp,&virial,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
