@@ -124,7 +124,9 @@ void Neighbor::build(Atom &atom)
   int i,j,k,m,n,ibin;
   double xtmp,ytmp,ztmp,delx,dely,delz,rsq;
   int *neighptr;
-  double **x = atom.x;
+  double *x = atom.x;
+  double *y = atom.y;
+  double *z = atom.z;
 
   int npnt = 0;
   int npage = tid;
@@ -153,9 +155,9 @@ void Neighbor::build(Atom &atom)
     neighptr = &pages[npage][npnt];
     n = 0;
 
-    xtmp = x[i][0];
-    ytmp = x[i][1];
-    ztmp = x[i][2];
+    xtmp = x[i];
+    ytmp = y[i];
+    ztmp = z[i];
 
     /* loop over rest of atoms in i's bin, ghosts are at end of linked list
        if j is owned atom, store it, since j is beyond i in linked list
@@ -165,15 +167,15 @@ void Neighbor::build(Atom &atom)
     j = bins[i];
     while (j >= 0) {
       if (j >= nlocal) {
-	if ((x[j][2] < ztmp) || (x[j][2] == ztmp && x[j][1] < ytmp) ||
-	    (x[j][2] == ztmp && x[j][1]  == ytmp && x[j][0] < xtmp)) {
+	if ((z[j] < ztmp) || (z[j] == ztmp && y[j] < ytmp) ||
+	    (z[j] == ztmp && y[j] == ytmp && x[j] < xtmp)) {
 	  j = bins[j];
 	  continue;
 	}
       }
-      delx = xtmp - x[j][0];
-      dely = ytmp - x[j][1];
-      delz = ztmp - x[j][2];
+      delx = xtmp - x[j];
+      dely = ytmp - y[j];
+      delz = ztmp - z[j];
       rsq = delx*delx + dely*dely + delz*delz;
       if (rsq <= cutneighsq) neighptr[n++] = j;
       j = bins[j];
@@ -185,9 +187,9 @@ void Neighbor::build(Atom &atom)
     for (k = 0; k < nstencil; k++) {
       j = binhead[ibin+stencil[k]];
       while (j >= 0) {
-	delx = xtmp - x[j][0];
-	dely = ytmp - x[j][1];
-	delz = ztmp - x[j][2];
+	delx = xtmp - x[j];
+	dely = ytmp - y[j];
+	delz = ztmp - z[j];
 	rsq = delx*delx + dely*dely + delz*delz;
 	if (rsq <= cutneighsq) neighptr[n++] = j;
 	j = bins[j];
@@ -206,11 +208,14 @@ void Neighbor::build(Atom &atom)
 void Neighbor::binatoms(Atom &atom)
 {
   int i,ibin,nlocal,nall;
-  double **x;
+  double *x,*y,*z;
+
 
   nlocal = atom.nlocal;
   nall = atom.nlocal + atom.nghost;
   x = atom.x;
+  y = atom.y;
+  z = atom.z;
 
   xprd = atom.box.xprd;
   yprd = atom.box.yprd;
@@ -221,7 +226,7 @@ void Neighbor::binatoms(Atom &atom)
   /* bin ghost atoms 1st, so will be at end of linked list */
 
   for (i = nlocal; i < nall; i++) {
-    ibin = coord2bin(x[i][0],x[i][1],x[i][2]);
+    ibin = coord2bin(x[i],y[i],z[i]);
     bins[i] = binhead[ibin];
     binhead[ibin] = i;
   }
@@ -229,7 +234,7 @@ void Neighbor::binatoms(Atom &atom)
   /* bin owned atoms */
 
   for (i = 0; i < nlocal; i++) {
-    ibin = coord2bin(x[i][0],x[i][1],x[i][2]);
+    ibin = coord2bin(x[i],y[i],z[i]);
     bins[i] = binhead[ibin];
     binhead[ibin] = i;
   }
