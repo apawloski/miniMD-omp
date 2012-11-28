@@ -95,9 +95,9 @@ double Thermo::energy(Atom &atom, Neighbor &neighbor, Force &force)
     const int numneigh = neighbor.numneigh[i];
     for (k = 0; k < numneigh; k++) {
       j = neighs[k];
-      delx = atom.x[i][0] - atom.x[j][0];
-      dely = atom.x[i][1] - atom.x[j][1];
-      delz = atom.x[i][2] - atom.x[j][2];
+      delx = atom.x[i] - atom.x[j];
+      dely = atom.y[i] - atom.y[j];
+      delz = atom.z[i] - atom.z[j];
       rsq = delx*delx + dely*dely + delz*delz;
       if (rsq < force.cutforcesq) {
 	sr2 = 1.0/rsq;
@@ -143,7 +143,7 @@ double Thermo::temperature(Atom &atom)
 
 double Thermo::pressure(double t, Atom &atom)
 {
-  const double * const x = &(atom.x[0][0]);
+  const double * const x = atom.x;
   const double * const f = &(atom.f[0][0]);
   const int n3all = 3*(atom.nlocal+atom.nghost);
 
