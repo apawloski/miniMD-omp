@@ -43,20 +43,25 @@ void Integrate::run(Atom &atom, Force &force, Neighbor &neighbor,
 		    Comm &comm, Thermo &thermo, Timer &timer)
 {
   int i,n;
-  double *x,*v,*f,*vold;
+  double *x,*y,*z,*v,*f,*vold;
 
   for (n = 0; n < ntimes; n++) {
 
-    x = &(atom.x[0][0]);
+    x = atom.x;
+    y = atom.y;
+    z = atom.z;
     v = &(atom.v[0][0]);
     const int n3local = 3*atom.nlocal;
     const double dt1 = dt;
 
 #if defined(_OPENMP)
-#pragma omp parallel for private(i) schedule(static) default(none) shared(x,v)
+#pragma omp parallel for private(i) schedule(static) default(none) shared(x,y,z,v)
 #endif
-    for (i = 0; i < n3local; i++)
+    for (i = 0; i < n3local; i++) {
       x[i] += dt1*v[i];
+      y[i] += dt1*v[i]; //Does this make sense?
+      z[i] += dt1*v[i]; //Does this make sense?
+    }
 
     timer.stamp();
 
