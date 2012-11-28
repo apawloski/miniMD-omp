@@ -45,7 +45,9 @@ class Atom {
   int nmax;
   int nthreads;
 
-  double **x;
+  double *x;
+  double *y;
+  double *z;
   double **v;
   double **f;
   double **vold;
@@ -73,9 +75,13 @@ class Atom {
   int unpack_exchange(int, double *);
   int skip_exchange(double *);
   
+  double **create_2d_double_array(int);
   double **realloc_2d_double_array(double **, int, int, int);
   double **create_2d_double_array(int, int);
+  double *realloc_double_array(double*, int, int);
+  double *create_double_array(int);
   void destroy_2d_double_array(double **);
+  void destroy_double_array(double *);
 };
 
 #endif

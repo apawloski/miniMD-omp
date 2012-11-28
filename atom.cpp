@@ -55,7 +55,8 @@ Atom::Atom()
   }
 #endif
 
-  x = v = f = vold = NULL;
+  v = f = vold = NULL;
+  x = y = z = NULL;
 
   comm_size = 3;
   reverse_size = 3;
@@ -65,7 +66,9 @@ Atom::Atom()
 Atom::~Atom()
 {
   if (nmax) {
-    destroy_2d_double_array(x);
+    destroy_double_array(x);
+    destroy_double_array(y);
+    destroy_double_array(z);
     destroy_2d_double_array(v);
     destroy_2d_double_array(f);
     destroy_2d_double_array(vold);
@@ -76,11 +79,13 @@ void Atom::growarray()
 {
   int nold = nmax;
   nmax += DELTA;
-  x = (double **) realloc_2d_double_array(x,nmax,3,3*nold);
+  x = (double *) realloc_double_array(x,nmax,3*nold);
+  y = (double *) realloc_double_array(y,nmax,3*nold);
+  z = (double *) realloc_double_array(z,nmax,3*nold);
   v = (double **) realloc_2d_double_array(v,nmax,3,3*nold);
   f = (double **) realloc_2d_double_array(f,nmax*nthreads,3,3*nold);
   vold = (double **) realloc_2d_double_array(vold,nmax,3,3*nold);
-  if (x == NULL || v == NULL || f == NULL || vold == NULL) {
+  if (x == NULL || y == NULL || z == NULL || v == NULL || f == NULL || vold == NULL) {
     printf("ERROR: No memory for atoms\n");
   }
 }
@@ -90,9 +95,9 @@ void Atom::addatom(double x_in, double y_in, double z_in,
 {
   if (nlocal == nmax) growarray();
 
-  x[nlocal][0] = x_in;
-  x[nlocal][1] = y_in;
-  x[nlocal][2] = z_in;
+  x[nlocal] = x_in;
+  y[nlocal] = y_in;
+  z[nlocal] = z_in;
   v[nlocal][0] = vx_in;
   v[nlocal][1] = vy_in;
   v[nlocal][2] = vz_in;
@@ -107,20 +112,20 @@ void Atom::addatom(double x_in, double y_in, double z_in,
 void Atom::pbc()
 {
   for (int i = 0; i < nlocal; i++) {
-    if (x[i][0] < 0.0) x[i][0] += box.xprd;
-    if (x[i][0] >= box.xprd) x[i][0] -= box.xprd;
-    if (x[i][1] < 0.0) x[i][1] += box.yprd;
-    if (x[i][1] >= box.yprd) x[i][1] -= box.yprd;
-    if (x[i][2] < 0.0) x[i][2] += box.zprd;
-    if (x[i][2] >= box.zprd) x[i][2] -= box.zprd;
+    if (x[i] < 0.0) x[i] += box.xprd;
+    if (x[i] >= box.xprd) x[i] -= box.xprd;
+    if (y[i] < 0.0) y[i] += box.yprd;
+    if (y[i] >= box.yprd) y[i] -= box.yprd;
+    if (z[i] < 0.0) z[i] += box.zprd;
+    if (z[i] >= box.zprd) z[i] -= box.zprd;
   }
 }
 
 void Atom::copy(int i, int j)
 {
-  x[j][0] = x[i][0];
-  x[j][1] = x[i][1];
-  x[j][2] = x[i][2];
+  x[j] = x[i];
+  y[j] = y[i];
+  z[j] = z[i];
   v[j][0] = v[i][0];
   v[j][1] = v[i][1];
   v[j][2] = v[i][2];
@@ -134,16 +139,16 @@ void Atom::pack_comm(int n, int *list, double *buf, int *pbc_flags)
   if (pbc_flags[0] == 0) {
     for (i = 0; i < n; i++) {
       j = list[i];
-      buf[m++] = x[j][0];
-      buf[m++] = x[j][1];
-      buf[m++] = x[j][2];
+      buf[m++] = x[j];
+      buf[m++] = y[j];
+      buf[m++] = z[j];
     }
   } else {
     for (i = 0; i < n; i++) {
       j = list[i];
-      buf[m++] = x[j][0] + pbc_flags[1]*box.xprd;
-      buf[m++] = x[j][1] + pbc_flags[2]*box.yprd;
-      buf[m++] = x[j][2] + pbc_flags[3]*box.zprd;
+      buf[m++] = x[j] + pbc_flags[1]*box.xprd;
+      buf[m++] = y[j] + pbc_flags[2]*box.yprd;
+      buf[m++] = z[j] + pbc_flags[3]*box.zprd;
     }
   }
 }
@@ -154,9 +159,9 @@ void Atom::unpack_comm(int n, int first, double *buf)
   m = 0;
   j = first;
   for (i = 0; i < n; i++, j++) {
-    x[j][0] = buf[m++];
-    x[j][1] = buf[m++];
-    x[j][2] = buf[m++];
+    x[j] = buf[m++];
+    y[j] = buf[m++];
+    z[j] = buf[m++];
   }
 }
 
@@ -188,13 +193,13 @@ int Atom::pack_border(int i, double *buf, int *pbc_flags)
 {
   int m = 0;
   if (pbc_flags[0] == 0) {
-    buf[m++] = x[i][0];
-    buf[m++] = x[i][1];
-    buf[m++] = x[i][2];
+    buf[m++] = x[i];
+    buf[m++] = y[i];
+    buf[m++] = z[i];
   } else {
-    buf[m++] = x[i][0] + pbc_flags[1]*box.xprd;
-    buf[m++] = x[i][1] + pbc_flags[2]*box.yprd;
-    buf[m++] = x[i][2] + pbc_flags[3]*box.zprd;
+    buf[m++] = x[i] + pbc_flags[1]*box.xprd;
+    buf[m++] = y[i] + pbc_flags[2]*box.yprd;
+    buf[m++] = z[i] + pbc_flags[3]*box.zprd;
   }
   return m;
 }
@@ -204,18 +209,18 @@ int Atom::unpack_border(int i, double *buf)
   if (i == nmax) growarray();
 
   int m = 0;
-  x[i][0] = buf[m++];
-  x[i][1] = buf[m++];
-  x[i][2] = buf[m++];
+  x[i] = buf[m++];
+  y[i] = buf[m++];
+  z[i] = buf[m++];
   return m;
 }
 
 int Atom::pack_exchange(int i, double *buf)
 {
   int m = 0;
-  buf[m++] = x[i][0];
-  buf[m++] = x[i][1];
-  buf[m++] = x[i][2];
+  buf[m++] = x[i];
+  buf[m++] = y[i];
+  buf[m++] = z[i];
   buf[m++] = v[i][0];
   buf[m++] = v[i][1];
   buf[m++] = v[i][2];
@@ -227,9 +232,9 @@ int Atom::unpack_exchange(int i, double *buf)
   if (i == nmax) growarray();
 
   int m = 0;
-  x[i][0] = buf[m++];
-  x[i][1] = buf[m++];
-  x[i][2] = buf[m++];
+  x[i] = buf[m++];
+  y[i] = buf[m++];
+  z[i] = buf[m++];
   v[i][0] = buf[m++];
   v[i][1] = buf[m++];
   v[i][2] = buf[m++];
@@ -286,6 +291,46 @@ void Atom::destroy_2d_double_array(double **array)
 {
   if (array != NULL) {
     free(array[0]);
+    free(array);
+  }
+}
+
+/* The following 1-d double array methods are just to mimick 2-d array methods */
+
+/* realloc a double array */
+
+double *Atom::realloc_double_array(double *array, int n, int nold)
+
+{
+  double *newarray;
+
+  newarray = create_double_array(n);
+  if (nold) memcpy(newarray, array, nold*sizeof(double));
+  destroy_double_array(array);
+
+  return newarray;
+}
+
+/* create a double array */
+
+double *Atom::create_double_array(int n)
+
+{
+  double *array;
+
+  if (n == 0) return NULL;
+
+  array = (double *) malloc(n*sizeof(double));
+
+  return array;
+}
+
+/* free memory of a double array */
+
+void Atom::destroy_double_array(double *array)
+
+{
+  if (array != NULL) {
     free(array);
   }
 }
