@@ -328,7 +328,7 @@ void Comm::exchange(Atom &atom)
 {
   int i,m,n,idim,nsend,nrecv,nrecv1,nrecv2,nlocal;
   double lo,hi,value;
-  double **x;
+  double *dim;
 
   MPI_Request request;
   MPI_Status status;
@@ -339,7 +339,7 @@ void Comm::exchange(Atom &atom)
 
   /* loop over dimensions */
 
-  for (idim = 0; idim < 3; idim++) {
+  for (idim = 0; idim < 3; idim++) { //Can we do this in one run now?
 
     /* only exchange if more than one proc in this dimension */
 
@@ -351,21 +351,22 @@ void Comm::exchange(Atom &atom)
     i = nsend = 0;
 
     if (idim == 0) {
+      dim = atom.x;
       lo = atom.box.xlo;
       hi = atom.box.xhi;
     } else if (idim == 1) {
+      dim = atom.y;
       lo = atom.box.ylo;
       hi = atom.box.yhi;
     } else {
+      dim = atom.z;
       lo = atom.box.zlo;
       hi = atom.box.zhi;
     }
 
-    x = atom.x;
-
     nlocal = atom.nlocal;
     while (i < nlocal) {
-      if (x[i][idim] < lo || x[i][idim] >= hi) {
+      if (dim[i] < lo || dim[i] >= hi) {
 	if (nsend > maxsend) growsend(nsend);
 	nsend += atom.pack_exchange(i,&buf_send[nsend]);
 	atom.copy(nlocal-1,i);
@@ -428,8 +429,7 @@ void Comm::borders(Atom &atom)
   int i,m,n,iswap,idim,ineed,nsend,nrecv,nall;
   double lo,hi;
   int pbc_flags[4];
-  double **x;
-  double *buf;
+  double *buf, *dim;
   MPI_Request request;
   MPI_Status status;
 
@@ -454,14 +454,19 @@ void Comm::borders(Atom &atom)
       pbc_flags[2] = pbc_flagy[iswap];
       pbc_flags[3] = pbc_flagz[iswap];
 
-      x = atom.x;
+      if (idim == 0)
+	dim = atom.x;
+      else if (idim == 2)
+	dim = atom.y;
+      else
+	dim = atom.z;
 
       nsend = 0;
       m = 0;
 
       nall = atom.nlocal + atom.nghost;
       for (i = 0; i < nall; i++) {
-	if (x[i][idim] >= lo && x[i][idim] < hi) {
+	if (dim[i] >= lo && dim[i] < hi) {
 	  if (m > maxsend) growsend(m);
 	  m += atom.pack_border(i,&buf_send[m],pbc_flags);
 	  if (nsend == maxsendlist[iswap]) growlist(iswap,nsend);
