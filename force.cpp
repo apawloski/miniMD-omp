@@ -77,7 +77,9 @@ void Force::compute(Atom &atom, Neighbor &neighbor, int me)
   double **f = atom.f;
 #endif
 
-  double **x = atom.x;
+  double *x = atom.x;
+  double *y = atom.y;
+  double *z = atom.z;
 
   // clear force on own and ghost atoms
   memset(&(f[0][0]),0,3*nall*sizeof(double));
@@ -88,15 +90,15 @@ void Force::compute(Atom &atom, Neighbor &neighbor, int me)
   for (i = ifrom; i < ito; i++) {
     neighs = neighbor.firstneigh[i];
     numneigh = neighbor.numneigh[i];
-    xtmp = x[i][0];
-    ytmp = x[i][1];
-    ztmp = x[i][2];
+    xtmp = x[i];
+    ytmp = y[i];
+    ztmp = z[i];
     fxtmp = fytmp = fztmp = 0.0;
     for (k = 0; k < numneigh; k++) {
       j = neighs[k];
-      delx = xtmp - x[j][0];
-      dely = ytmp - x[j][1];
-      delz = ztmp - x[j][2];
+      delx = xtmp - x[j];
+      dely = ytmp - y[j];
+      delz = ztmp - z[j];
       rsq = delx*delx + dely*dely + delz*delz;
       if (rsq < cutforcesq) {
 	sr2 = 1.0/rsq;
