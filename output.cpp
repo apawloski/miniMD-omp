@@ -63,9 +63,9 @@ void output(In &in, Atom &atom, Force &force, Neighbor &neighbor, Comm &comm,
 
   int nlost = 0;
   for (i = 0; i < atom.nlocal; i++) {
-    if (atom.x[i][0] < 0.0 || atom.x[i][0] >= atom.box.xprd || 
-	atom.x[i][1] < 0.0 || atom.x[i][1] >= atom.box.yprd || 
-	atom.x[i][2] < 0.0 || atom.x[i][2] >= atom.box.zprd) nlost++;
+    if (atom.x[i] < 0.0 || atom.x[i] >= atom.box.xprd || 
+	atom.y[i] < 0.0 || atom.y[i] >= atom.box.yprd || 
+	atom.z[i] < 0.0 || atom.z[i] >= atom.box.zprd) nlost++;
   }
   int nlostall;
   MPI_Allreduce(&nlost,&nlostall,1,MPI_INT,MPI_SUM,MPI_COMM_WORLD);
