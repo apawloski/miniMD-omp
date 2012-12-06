@@ -65,7 +65,23 @@ void output(In &in, Atom &atom, Force &force, Neighbor &neighbor, Comm &comm,
   for (i = 0; i < atom.nlocal; i++) {
     if (atom.x[i] < 0.0 || atom.x[i] >= atom.box.xprd || 
 	atom.y[i] < 0.0 || atom.y[i] >= atom.box.yprd || 
-	atom.z[i] < 0.0 || atom.z[i] >= atom.box.zprd) nlost++;
+	atom.z[i] < 0.0 || atom.z[i] >= atom.box.zprd) //nlost++;
+      {
+	nlost++;
+	if (atom.x[i] < 0.0)
+	  printf("x[i]<0 (%f)\n", atom.x[i]);
+	else if (atom.y[i] < 0.0)
+	  printf("y[i]<0 (%f)\n", atom.y[i]);
+	else if (atom.z[i] < 0.0)
+	  printf("z[i]<0 (%f)\n", atom.z[i]);
+	else if (atom.x[i] >= atom.box.xprd)
+	  printf("x[i] (%f) >= atom.box.xprd (%f)\n", atom.x[i], atom.box.xprd);
+	else if (atom.y[i] >= atom.box.yprd)
+	  printf("y[i] (%f) >= atom.box.yprd (%f)\n", atom.y[i], atom.box.yprd);
+	else if (atom.z[i] >= atom.box.zprd)
+	  printf("z[i] (%f) >= atom.box.zprd (%f)\n", atom.z[i], atom.box.zprd);
+
+      }
   }
   int nlostall;
   MPI_Allreduce(&nlost,&nlostall,1,MPI_INT,MPI_SUM,MPI_COMM_WORLD);
@@ -73,8 +89,7 @@ void output(In &in, Atom &atom, Force &force, Neighbor &neighbor, Comm &comm,
   if (natoms != atom.natoms || nlostall > 0) {
     if (me == 0) printf("Atom counts = %d %d %d\n",
 			nlostall,natoms,atom.natoms);
-    if (me == 0 && nlostall > 0) printf("ERROR: Incorrect number of atoms; nlostall > 0. nlostall = %i\n", nlostall);
-    if (me == 0 && natoms != atom.natoms > 0) printf("ERROR: Incorrect number of atoms; natoms (%i) != atom.natoms (%i)\n", natoms, atom.natoms);
+    if (me == 0) printf("ERROR: Incorrect number of atoms");
     return;
   }
 

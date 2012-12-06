@@ -62,15 +62,12 @@ void Integrate::run(Atom &atom, Force &force, Neighbor &neighbor,
       //We loop over each atom's 3 dimensions
       if ( i%3 == 0 ) {	
 	x[i/3] += dt1*v[i];
-	//	if (x[i/3]<0) printf("x[i] = %f\n", x[i/3]);
       }
       else if ( i%3 == 1 ) {
 	y[i/3] += dt1*v[i];
-	//	if (y[i/3]<0) printf("x[i] = %f\n", y[i/3]);
       }
       else {
 	z[i/3] += dt1*v[i];      
-	//	if (z[i/3]<0) printf("z[i] = %f\n", z[i/3]);
       }
     }
     
