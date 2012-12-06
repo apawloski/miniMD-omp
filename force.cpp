@@ -135,5 +135,5 @@ void Force::compute(Atom &atom, Neighbor &neighbor, int me)
 #else
   // NO-OP in non-threaded compile
 #endif
-}
+ }
 }

@@ -73,7 +73,8 @@ void output(In &in, Atom &atom, Force &force, Neighbor &neighbor, Comm &comm,
   if (natoms != atom.natoms || nlostall > 0) {
     if (me == 0) printf("Atom counts = %d %d %d\n",
 			nlostall,natoms,atom.natoms);
-    if (me == 0) printf("ERROR: Incorrect number of atoms\n");
+    if (me == 0 && nlostall > 0) printf("ERROR: Incorrect number of atoms; nlostall > 0. nlostall = %i\n", nlostall);
+    if (me == 0 && natoms != atom.natoms > 0) printf("ERROR: Incorrect number of atoms; natoms (%i) != atom.natoms (%i)\n", natoms, atom.natoms);
     return;
   }
 

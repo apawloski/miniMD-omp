@@ -61,24 +61,27 @@ void Integrate::run(Atom &atom, Force &force, Neighbor &neighbor,
     for (i = 0; i < n3local; i++) {
       //We loop over each atom's 3 dimensions
       if ( i%3 == 0 ) {	
-	x[i/3] += dt*v[i];
+	x[i/3] += dt1*v[i];
+	//	if (x[i/3]<0) printf("x[i] = %f\n", x[i/3]);
       }
       else if ( i%3 == 1 ) {
-	y[i/3] += dt*v[i];
+	y[i/3] += dt1*v[i];
+	//	if (y[i/3]<0) printf("x[i] = %f\n", y[i/3]);
       }
       else {
 	z[i/3] += dt1*v[i];      
+	//	if (z[i/3]<0) printf("z[i] = %f\n", z[i/3]);
       }
     }
     
     timer.stamp();
 
     if ((n+1) % neighbor.every) {
-      //      comm.communicate(atom);
+      comm.communicate(atom);
       timer.stamp(TIME_COMM);
     } else {
-      //      comm.exchange(atom);
-      //comm.borders(atom);
+      comm.exchange(atom);
+      comm.borders(atom);
       timer.stamp(TIME_COMM);
       neighbor.build(atom);
       timer.stamp(TIME_NEIGH);
@@ -87,7 +90,7 @@ void Integrate::run(Atom &atom, Force &force, Neighbor &neighbor,
     force.compute(atom,neighbor,comm.me);
     timer.stamp(TIME_FORCE);
 
-    //comm.reverse_communicate(atom);
+    comm.reverse_communicate(atom);
     timer.stamp(TIME_COMM);
 
     vold = &(atom.vold[0][0]);
