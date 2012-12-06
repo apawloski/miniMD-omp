@@ -456,7 +456,7 @@ void Comm::borders(Atom &atom)
 
       if (idim == 0)
 	dim = atom.x;
-      else if (idim == 2)
+      else if (idim == 1)
 	dim = atom.y;
       else
 	dim = atom.z;
