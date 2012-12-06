@@ -51,6 +51,7 @@ void Integrate::run(Atom &atom, Force &force, Neighbor &neighbor,
     y = atom.y;
     z = atom.z;
     v = &(atom.v[0][0]);
+
     const int n3local = 3*atom.nlocal;
     const double dt1 = dt;
 
@@ -58,19 +59,26 @@ void Integrate::run(Atom &atom, Force &force, Neighbor &neighbor,
 #pragma omp parallel for private(i) schedule(static) default(none) shared(x,y,z,v)
 #endif
     for (i = 0; i < n3local; i++) {
-      x[i] += dt1*v[i];
-      y[i] += dt1*v[i]; //Does this make sense?
-      z[i] += dt1*v[i]; //Does this make sense?
+      //We loop over each atom's 3 dimensions
+      if ( i%3 == 0 ) {	
+	x[i/3] += dt*v[i];
+      }
+      else if ( i%3 == 1 ) {
+	y[i/3] += dt*v[i];
+      }
+      else {
+	z[i/3] += dt1*v[i];      
+      }
     }
-
+    
     timer.stamp();
 
     if ((n+1) % neighbor.every) {
-      comm.communicate(atom);
+      //      comm.communicate(atom);
       timer.stamp(TIME_COMM);
     } else {
-      comm.exchange(atom);
-      comm.borders(atom);
+      //      comm.exchange(atom);
+      //comm.borders(atom);
       timer.stamp(TIME_COMM);
       neighbor.build(atom);
       timer.stamp(TIME_NEIGH);
@@ -79,12 +87,12 @@ void Integrate::run(Atom &atom, Force &force, Neighbor &neighbor,
     force.compute(atom,neighbor,comm.me);
     timer.stamp(TIME_FORCE);
 
-    comm.reverse_communicate(atom);
+    //comm.reverse_communicate(atom);
     timer.stamp(TIME_COMM);
 
     vold = &(atom.vold[0][0]);
-    v = &(atom.v[0][0]);
     f = &(atom.f[0][0]);
+
     const int n3local2 = 3*atom.nlocal;
     const double dtforce1 = dtforce;
 
@@ -93,7 +101,7 @@ void Integrate::run(Atom &atom, Force &force, Neighbor &neighbor,
 #endif
     for (i = 0; i < n3local2; i++) {
       vold[i] = v[i];
-      v[i] += dtforce*f[i];
+      v[i] += dtforce1*f[i];
     }
 
     if (thermo.nstat) thermo.compute(n+1,atom,neighbor,force);
