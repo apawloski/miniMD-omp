@@ -144,6 +144,8 @@ double Thermo::temperature(Atom &atom)
 double Thermo::pressure(double t, Atom &atom)
 {
   const double * const x = atom.x;
+  const double * const y = atom.y;
+  const double * const z = atom.z;
   const double * const f = &(atom.f[0][0]);
   const int n3all = 3*(atom.nlocal+atom.nghost);
 
@@ -152,8 +154,14 @@ double Thermo::pressure(double t, Atom &atom)
 #if defined(_OPENMP)
 #pragma omp parallel for private(i) default(none) reduction(+:virial)
 #endif
-  for (i = 0; i < n3all; i++)
-    virial += f[i]*x[i];
+  for (i = 0; i < n3all; i++) {
+    if (i%3==0)
+      virial += f[i]*x[i/3];
+    else if (i%3==1)
+      virial += f[i]*y[i/3];
+    else
+      virial += f[i]*z[i/3];
+  }
 
   double virtmp = 48.0*virial;
   MPI_Allreduce(&virtmp,&virial,1,MPI_DOUBLE,MPI_SUM,MPI_COMM_WORLD);
